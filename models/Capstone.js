@@ -5,8 +5,9 @@ const capstoneSchema = new Schema(
   {
     title: String,
     description: String,
-    link: String,
-    documents: [String],
+    logo: String,
+    website: String,
+    documents: String,
     images: [String],
     ratings: [
       {
@@ -17,6 +18,7 @@ const capstoneSchema = new Schema(
     ],
     approver: mongoose.Schema.Types.ObjectId,
     tags: [mongoose.Schema.Types.ObjectId],
+    percentage: Number,
     comment: [
       {
         user_id: mongoose.Schema.Types.ObjectId,

@@ -2,8 +2,12 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const { Storage } = require("@google-cloud/storage");
+const UUID = require("uuid-v4");
+const multer = require("multer");
+const fs = require("fs");
 
-const { jwtSign } = require("./utils/utils");
+const { jwtSign, uploadFile } = require("./utils/utils");
 const { verifyToken } = require("./middleware/authorization");
 
 mongoose.connect(process.env.MONGODB_URI, {
@@ -18,76 +22,103 @@ app.use(express.urlencoded({ extended: true }));
 const port = process.env.PORT;
 const saltRounds = 10;
 
+const storage = new Storage({
+  keyFilename:
+    "./config/project-csd-ec082-firebase-adminsdk-mjv0o-8646c43390.json",
+});
+
 // models
 const User = require("./models/User");
 const Role = require("./models/Role");
 const Type = require("./models/Type");
 
-app.get("/roles", async (req, res) => {
-  const roles = await Role.find();
-  res.status(200).json({ roles });
+const store = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads");
+  },
+  filename: function (req, file, cb) {
+    const words = file.originalname.split(".");
+    const filename = `${UUID()}.${words[words.length - 1]}`;
+    cb(null, filename);
+  },
 });
 
-app.get("/types", async (req, res) => {
+app.post("/file", async (req, res) => {
+  const upload = multer({ storage: store }).single("attachment");
+  upload(req, res, async () => {
+    const link = await uploadFile(`./uploads/${req.file.filename}`, storage);
+    res.json({ message: link });
+  });
+});
+
+app.get("/roles_types", async (req, res) => {
+  const roles = await Role.find();
   const types = await Type.find();
-  res.status(200).json({ types });
+  res.status(200).json({ roles, types });
 });
 
 app.post("/register", async (req, res) => {
-  const {
-    username,
-    password,
-    first_name,
-    last_name,
-    email,
-    status,
-    attachment,
-    role_id,
-    type_id,
-  } = req.body;
+  const upload = multer({ storage: store }).single("attachment");
+  upload(req, res, async () => {
+    const {
+      username,
+      password,
+      first_name,
+      last_name,
+      email,
+      status,
+      role_id,
+      type_id,
+    } = req.body;
 
-  const userUsername = await User.find({ username: username });
-  const userEmail = await User.find({ email: email });
+    const path = `./uploads/${req.file.filename}`;
 
-  if (!userUsername.length && !userEmail.length) {
-    bcrypt.hash(password, saltRounds, async (err, hash) => {
-      const user = await User.create({
-        username: username,
-        password: hash,
-        first_name: first_name,
-        last_name: last_name,
-        email: email,
-        status: status,
-        attachment: attachment,
-        role_id: role_id,
-        type_id: type_id,
+    const userUsername = await User.find({ username: username });
+    const userEmail = await User.find({ email: email });
+
+    if (!userUsername.length && !userEmail.length) {
+      const attachmentLink = await uploadFile(path, storage);
+      bcrypt.hash(password, saltRounds, async (err, hash) => {
+        const user = await User.create({
+          username: username,
+          password: hash,
+          first_name: first_name,
+          last_name: last_name,
+          email: email,
+          status: status,
+          attachment: attachmentLink,
+          role_id: role_id,
+          type_id: type_id,
+        });
+        const token = jwtSign(user.id);
+        res.status(200).json({
+          data: {
+            user: user,
+            token: token,
+          },
+          errors: null,
+        });
       });
-      const token = jwtSign(user.id);
-      res.status(200).json({
-        data: {
-          user: user,
-          token: token,
-        },
-        errors: null,
-      });
-    });
-  } else {
-    let errors = [];
-    if (userUsername.length) {
-      errors.push({
-        field: "username",
-        error: "Username already exist",
-      });
+    } else {
+      let errors = [];
+      if (userUsername.length) {
+        errors.push({
+          field: "username",
+          error: "Username already exist",
+        });
+      }
+
+      if (userEmail.length) {
+        errors.push({
+          field: "email",
+          error: "Email already exist",
+        });
+      }
+      res.status(200).json({ data: null, errors });
     }
 
-    if (userEmail.length) {
-      errors.push({
-        field: "email",
-        error: "Email already exist",
-      });
-    }
-    res.status(200).json({ data: null, errors });
-  }
+    fs.unlinkSync(path);
+  });
 });
 
 app.post("/login", async (req, res) => {
