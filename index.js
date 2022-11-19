@@ -6,6 +6,7 @@ const { Storage } = require("@google-cloud/storage");
 const UUID = require("uuid-v4");
 const multer = require("multer");
 const fs = require("fs");
+const _ = require("lodash");
 
 const { jwtSign, uploadFile } = require("./utils/utils");
 const { verifyToken } = require("./middleware/authorization");
@@ -91,9 +92,19 @@ app.post("/register", async (req, res) => {
           type_id: type_id,
         });
         const token = jwtSign(user.id);
+
+        const role = await Role.findById(role_id);
+        const type = await Type.findById(type_id);
+
+        const userData = _.omit(user._doc, ["role_id", "type_id"]);
+
         res.status(200).json({
           data: {
-            user: user,
+            user: {
+              ...userData,
+              role: { ...role._doc },
+              type: { ...type._doc },
+            },
             token: token,
           },
           errors: null,
@@ -126,12 +137,21 @@ app.post("/login", async (req, res) => {
   const users = await User.find({ username: username });
 
   if (users.length) {
-    bcrypt.compare(password, users[0].password, (err, result) => {
+    bcrypt.compare(password, users[0].password, async (err, result) => {
       if (result) {
+        const userData = _.omit(users[0]._doc, ["role_id", "type_id"]);
+
+        const role = await Role.findById(users[0].role_id);
+        const type = await Type.findById(users[0].type_id);
+
         const token = jwtSign(users[0].id);
         res.status(200).json({
           data: {
-            user: users[0],
+            user: {
+              ...userData,
+              role: { ...role._doc },
+              type: { ...type._doc },
+            },
             token: token,
           },
           error: null,
