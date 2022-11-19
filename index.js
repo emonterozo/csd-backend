@@ -44,14 +44,6 @@ const store = multer.diskStorage({
   },
 });
 
-app.post("/file", async (req, res) => {
-  const upload = multer({ storage: store }).single("attachment");
-  upload(req, res, async () => {
-    const link = await uploadFile(`./uploads/${req.file.filename}`, storage);
-    res.json({ message: link });
-  });
-});
-
 app.get("/roles_types", async (req, res) => {
   const roles = await Role.find();
   const types = await Type.find();
