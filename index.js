@@ -7,6 +7,7 @@ const UUID = require("uuid-v4");
 const multer = require("multer");
 const fs = require("fs");
 const _ = require("lodash");
+const cors = require("cors");
 
 const { jwtSign, uploadFile } = require("./utils/utils");
 const { verifyToken } = require("./middleware/authorization");
@@ -19,6 +20,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 const port = process.env.PORT;
 const saltRounds = 10;
