@@ -26,6 +26,7 @@ const capstoneSchema = new Schema(
         comment: String,
       },
     ],
+    uploaded_by: mongoose.Schema.Types.ObjectId,
   },
   { collection: "capstones" }
 );

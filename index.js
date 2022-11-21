@@ -34,6 +34,7 @@ const storage = new Storage({
 const User = require("./models/User");
 const Role = require("./models/Role");
 const Type = require("./models/Type");
+const Tag = require("./models/Tag");
 
 const store = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -46,25 +47,16 @@ const store = multer.diskStorage({
   },
 });
 
-app.get("/roles_types", async (req, res) => {
-  const roles = await Role.find();
+app.get("/types", async (req, res) => {
   const types = await Type.find();
-  res.status(200).json({ roles, types });
+  res.status(200).json({ types });
 });
 
 app.post("/register", async (req, res) => {
   const upload = multer({ storage: store }).single("attachment");
   upload(req, res, async () => {
-    const {
-      username,
-      password,
-      first_name,
-      last_name,
-      email,
-      status,
-      role_id,
-      type_id,
-    } = req.body;
+    const { username, password, first_name, last_name, email, type_id } =
+      req.body;
 
     const path = `./uploads/${req.file.filename}`;
 
@@ -74,20 +66,21 @@ app.post("/register", async (req, res) => {
     if (!userUsername.length && !userEmail.length) {
       const attachmentLink = await uploadFile(path, storage);
       bcrypt.hash(password, saltRounds, async (err, hash) => {
+        const role = await Role.findOne({ description: "User" });
+
         const user = await User.create({
           username: username,
           password: hash,
           first_name: first_name,
           last_name: last_name,
           email: email,
-          status: status,
+          status: "pending",
           attachment: attachmentLink,
-          role_id: role_id,
+          role_id: role._id,
           type_id: type_id,
         });
         const token = jwtSign(user.id);
 
-        const role = await Role.findById(role_id);
         const type = await Type.findById(type_id);
 
         const userData = _.omit(user._doc, ["role_id", "type_id"]);
@@ -157,6 +150,18 @@ app.post("/login", async (req, res) => {
   } else {
     res.status(200).json({ data: null, error: "Account does not exist" });
   }
+});
+
+app.get("/tags_professor", verifyToken, async (req, res) => {
+  const tags = await Tag.find();
+
+  const type = await Type.find({ description: "Professor" });
+  const list = await User.find({ type_id: type[0]._id });
+  const professor = list.map((item) => ({
+    _id: item._id,
+    name: `${item.first_name} ${item.last_name}`,
+  }));
+  res.status(200).json({ tags, professor });
 });
 
 app.get("/capstones", verifyToken, (req, res) => {
