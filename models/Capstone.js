@@ -7,6 +7,7 @@ const capstoneSchema = new Schema(
     description: String,
     logo: String,
     website: String,
+    website_views: Number,
     documents: String,
     images: [String],
     ratings: [
