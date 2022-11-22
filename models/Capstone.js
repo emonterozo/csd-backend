@@ -13,20 +13,20 @@ const capstoneSchema = new Schema(
       {
         rating: Number,
         count: Number,
-        rate_by: [mongoose.Schema.Types.ObjectId],
+        rate_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       },
     ],
-    approver: mongoose.Schema.Types.ObjectId,
-    tags: [mongoose.Schema.Types.ObjectId],
+    approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    tags: { type: [mongoose.Schema.Types.ObjectId], ref: "Tag" },
     percentage: Number,
-    comment: [
+    comments: [
       {
-        user_id: mongoose.Schema.Types.ObjectId,
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         timestamp: mongoose.Schema.Types.Date,
         comment: String,
       },
     ],
-    uploaded_by: mongoose.Schema.Types.ObjectId,
+    uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { collection: "capstones" }
 );
