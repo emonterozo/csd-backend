@@ -84,23 +84,18 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const users = await User.find({ username: username });
+  const users = await User.find({ username: username })
+    .populate("role")
+    .populate("type");
 
   if (users.length) {
     bcrypt.compare(password, users[0].password, async (err, result) => {
       if (result) {
-        const userData = _.omit(users[0]._doc, ["role_id", "type_id"]);
-
-        const role = await Role.findById(users[0]._doc.role_id);
-        const type = await Type.findById(users[0]._doc.type_id);
-
         const token = jwtSign(users[0]._doc.id);
         res.status(200).json({
           data: {
             user: {
-              ...userData,
-              role: { ...role._doc },
-              type: { ...type._doc },
+              ...users[0]._doc,
             },
             token: token,
           },
