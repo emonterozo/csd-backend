@@ -39,8 +39,8 @@ router.post("/register", async (req, res) => {
           email: email,
           status: "pending",
           attachment: attachmentLink,
-          role_id: role._id,
-          type_id: type_id,
+          role: role._id,
+          type: type_id,
         });
         const token = jwtSign(user.id);
 
@@ -91,10 +91,10 @@ router.post("/login", async (req, res) => {
       if (result) {
         const userData = _.omit(users[0]._doc, ["role_id", "type_id"]);
 
-        const role = await Role.findById(users[0].role_id);
-        const type = await Type.findById(users[0].type_id);
+        const role = await Role.findById(users[0]._doc.role_id);
+        const type = await Type.findById(users[0]._doc.type_id);
 
-        const token = jwtSign(users[0].id);
+        const token = jwtSign(users[0]._doc.id);
         res.status(200).json({
           data: {
             user: {
@@ -113,6 +113,11 @@ router.post("/login", async (req, res) => {
   } else {
     res.status(200).json({ data: null, error: "Account does not exist" });
   }
+});
+
+router.get("/list", async (req, res) => {
+  const users = await User.find().populate("type");
+  res.status(200).json({ users });
 });
 
 module.exports = router;

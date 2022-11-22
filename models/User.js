@@ -10,8 +10,8 @@ const userSchema = new Schema(
     email: String,
     status: String,
     attachment: String,
-    role_id: mongoose.Schema.Types.ObjectId,
-    type_id: mongoose.Schema.Types.ObjectId,
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
+    type: { type: mongoose.Schema.Types.ObjectId, ref: "Type" },
   },
   { collection: "users" }
 );
