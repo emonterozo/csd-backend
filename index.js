@@ -37,7 +37,7 @@ app.get("/tags_professor", verifyToken, async (req, res) => {
   const tags = await Tag.find();
 
   const type = await Type.find({ description: "Professor" });
-  const list = await User.find({ type_id: type[0]._id });
+  const list = await User.find({ type: type[0]._id });
   const professor = list.map((item) => ({
     _id: item._id,
     name: `${item.first_name} ${item.last_name}`,
