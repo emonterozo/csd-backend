@@ -10,7 +10,7 @@ const { store, storage } = require("../utils/store");
 
 const Capstone = require("../models/Capstone");
 
-router.get("/list", verifyToken, async (req, res) => {
+router.get("/list", async (req, res) => {
   const capstones = await Capstone.find()
     .populate("tags")
     .populate({
@@ -111,6 +111,66 @@ router.post("/add", verifyToken, async (req, res) => {
         res.sendStatus(500);
       });
   });
+});
+
+router.post("/update/rating", verifyToken, async (req, res) => {
+  const { id, rating, user } = req.body;
+
+  Capstone.findOneAndUpdate(
+    {
+      _id: id,
+      "ratings.rating": rating,
+    },
+    {
+      $inc: { "ratings.$.count": 1 },
+      $push: { "ratings.$.rate_by": user },
+    }
+  )
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
+});
+
+router.post("/update/percentage", verifyToken, async (req, res) => {
+  const { id, percentage } = req.body;
+
+  Capstone.findByIdAndUpdate(id, { percentage })
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
+});
+
+router.post("/update/views", verifyToken, (req, res) => {
+  const { id } = req.body;
+
+  Capstone.findByIdAndUpdate(id, {
+    $inc: { website_views: 1 },
+  })
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
+});
+
+router.post("/add/comment", verifyToken, (req, res) => {
+  const { id, comment, user } = req.body;
+  Capstone.findByIdAndUpdate(id, {
+    $push: {
+      comments: {
+        user: user,
+        comment: comment,
+        timestamp: new Date(),
+      },
+    },
+  })
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
+});
+
+router.get("/comments/:id", verifyToken, async (req, res) => {
+  const comments = await Capstone.findById(req.params.id)
+    .populate({
+      path: "comments.user",
+      select: "first_name last_name",
+    })
+    .select("comments");
+  res.status(200).json(comments);
 });
 
 module.exports = router;
