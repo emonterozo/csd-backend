@@ -158,7 +158,7 @@ router.post("/update/rating", verifyToken, async (req, res) => {
     });
 
     const addRatings = removeRatings.map((item) => {
-      if (_.isEqual(item.rating.toString(), rating)) {
+      if (_.isEqual(item.rating, parseInt(rating, 10))) {
         return {
           rating: item.rating,
           count: item.count + 1,
