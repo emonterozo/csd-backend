@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const fs = require("fs");
+const mongoose = require("mongoose");
+const _ = require("lodash");
 
 const { uploadFile } = require("../utils/utils");
 const { verifyToken } = require("../middleware/authorization");
@@ -68,6 +70,7 @@ router.post("/add", verifyToken, async (req, res) => {
       description: description,
       website: website,
       website_views: 0,
+      percentage: 0,
       tags: tags,
       approver: professor,
       uploaded_by: uploaded_by,
@@ -116,18 +119,61 @@ router.post("/add", verifyToken, async (req, res) => {
 router.post("/update/rating", verifyToken, async (req, res) => {
   const { id, rating, user } = req.body;
 
-  Capstone.findOneAndUpdate(
-    {
-      _id: id,
-      "ratings.rating": rating,
-    },
-    {
-      $inc: { "ratings.$.count": 1 },
-      $push: { "ratings.$.rate_by": user },
-    }
-  )
-    .then(() => res.sendStatus(200))
-    .catch(() => res.sendStatus(500));
+  const data = await Capstone.findOne({
+    _id: id,
+    "ratings.rate_by": { $in: mongoose.Types.ObjectId(user) },
+  }).select("ratings");
+
+  if (_.isNull(data)) {
+    // new rating
+    Capstone.findOneAndUpdate(
+      {
+        _id: id,
+        "ratings.rating": rating,
+      },
+      {
+        $inc: { "ratings.$.count": 1 },
+        $push: { "ratings.$.rate_by": user },
+      }
+    )
+      .then(() => res.sendStatus(200))
+      .catch(() => res.sendStatus(500));
+  } else {
+    // update rating
+    const { ratings } = data;
+
+    const removeRatings = ratings.map((item) => {
+      if (item.rate_by.includes(user)) {
+        return {
+          rating: item.rating,
+          count: item.count - 1,
+          rate_by: item.rate_by.filter(
+            (value) => !_.isEqual(value.toString(), user)
+          ),
+          _id: item._id,
+        };
+      } else {
+        return item;
+      }
+    });
+
+    const addRatings = removeRatings.map((item) => {
+      if (_.isEqual(item.rating.toString(), rating)) {
+        return {
+          rating: item.rating,
+          count: item.count + 1,
+          rate_by: [...item.rate_by, user],
+          _id: item._id,
+        };
+      } else {
+        return item;
+      }
+    });
+
+    Capstone.findByIdAndUpdate(id, { ratings: addRatings })
+      .then(() => res.sendStatus(200))
+      .catch(() => res.sendStatus(500));
+  }
 });
 
 router.post("/update/percentage", verifyToken, async (req, res) => {
@@ -163,7 +209,7 @@ router.post("/add/comment", verifyToken, (req, res) => {
     .catch(() => res.sendStatus(500));
 });
 
-router.get("/comments/:id", verifyToken, async (req, res) => {
+router.get("/comments/:id", async (req, res) => {
   const comments = await Capstone.findById(req.params.id)
     .populate({
       path: "comments.user",
