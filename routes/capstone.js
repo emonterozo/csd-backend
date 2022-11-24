@@ -173,4 +173,27 @@ router.get("/comments/:id", verifyToken, async (req, res) => {
   res.status(200).json(comments);
 });
 
+router.get("/list/:id", async (req, res) => {
+  const capstone = await Capstone.findById({ _id: req.params.id })
+    .populate("tags")
+    .populate({
+      path: "uploaded_by",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "approver",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "comments.user",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "ratings.rate_by",
+      select: "first_name last_name",
+    });
+
+  res.status(200).json({ capstone });
+});
+
 module.exports = router;

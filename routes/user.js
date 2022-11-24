@@ -111,7 +111,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/list", async (req, res) => {
-  const users = await User.find().populate("type");
+  const users = await User.find().populate("type").populate("role");
   res.status(200).json({ users });
 });
 
