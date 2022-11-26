@@ -14,6 +14,7 @@ const { store, storage } = require("../utils/store");
 const User = require("../models/User");
 const Role = require("../models/Role");
 const Type = require("../models/Type");
+const { verifyToken } = require("../middleware/authorization");
 
 router.post("/register", async (req, res) => {
   const upload = multer({ storage: store }).single("attachment");
@@ -115,4 +116,18 @@ router.get("/list", async (req, res) => {
   res.status(200).json({ users });
 });
 
+router.post("/update_status", verifyToken, async (req, res) => {
+  const { user: userId, status } = req.body;
+  const filter = {
+    _id: userId,
+  };
+  const update = {
+    status,
+  };
+  const updatedUser = await User.findOneAndUpdate(filter, update, {
+    new: true,
+  });
+
+  return res.status(200).json({ user: updatedUser });
+});
 module.exports = router;
