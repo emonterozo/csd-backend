@@ -5,7 +5,7 @@ const fs = require("fs");
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-const { uploadFile } = require("../utils/utils");
+const { uploadFile, getRatings } = require("../utils/utils");
 const { verifyToken } = require("../middleware/authorization");
 
 const { store, storage } = require("../utils/store");
@@ -104,6 +104,7 @@ router.post("/add", verifyToken, async (req, res) => {
           rate_by: [],
         },
       ],
+      rate: 0,
     })
       .then(() => {
         const dir = "./uploads";
@@ -124,23 +125,31 @@ router.post("/update/rating", verifyToken, async (req, res) => {
     "ratings.rate_by": { $in: mongoose.Types.ObjectId(user) },
   }).select("ratings");
 
+  const { ratings } = await Capstone.findById(id).select("ratings");
+
   if (_.isNull(data)) {
     // new rating
-    Capstone.findOneAndUpdate(
-      {
-        _id: id,
-        "ratings.rating": rating,
-      },
-      {
-        $inc: { "ratings.$.count": 1 },
-        $push: { "ratings.$.rate_by": user },
+    const addRatings = ratings.map((item) => {
+      if (_.isEqual(item.rating, parseInt(rating, 10))) {
+        return {
+          rating: item.rating,
+          count: item.count + 1,
+          rate_by: [...item.rate_by, user],
+          _id: item._id,
+        };
+      } else {
+        return item;
       }
-    )
+    });
+
+    Capstone.findByIdAndUpdate(id, {
+      ratings: addRatings,
+      rate: getRatings(addRatings),
+    })
       .then(() => res.sendStatus(200))
       .catch(() => res.sendStatus(500));
   } else {
     // update rating
-    const { ratings } = data;
 
     const removeRatings = ratings.map((item) => {
       if (item.rate_by.includes(user)) {
@@ -170,7 +179,10 @@ router.post("/update/rating", verifyToken, async (req, res) => {
       }
     });
 
-    Capstone.findByIdAndUpdate(id, { ratings: addRatings })
+    Capstone.findByIdAndUpdate(id, {
+      ratings: addRatings,
+      rate: getRatings(addRatings),
+    })
       .then(() => res.sendStatus(200))
       .catch(() => res.sendStatus(500));
   }
@@ -238,6 +250,31 @@ router.get("/list/:id", async (req, res) => {
       path: "ratings.rate_by",
       select: "first_name last_name",
     });
+
+  res.status(200).json({ capstone });
+});
+
+router.get("/dashboard", verifyToken, async (req, res) => {
+  const capstone = await Capstone.find()
+    .populate("tags")
+    .populate({
+      path: "uploaded_by",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "approver",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "comments.user",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "ratings.rate_by",
+      select: "first_name last_name",
+    })
+    .sort({ rate: -1 })
+    .limit(5);
 
   res.status(200).json({ capstone });
 });

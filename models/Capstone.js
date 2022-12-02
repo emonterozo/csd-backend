@@ -17,6 +17,7 @@ const capstoneSchema = new Schema(
         rate_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       },
     ],
+    rate: Number,
     approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     tags: { type: [mongoose.Schema.Types.ObjectId], ref: "Tag" },
     percentage: Number,

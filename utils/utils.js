@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const UUID = require("uuid-v4");
+const _ = require("lodash");
 
 const jwtSign = (data) => {
   return jwt.sign({ id: data }, process.env.SECRET_KEY, {
@@ -35,4 +36,27 @@ const uploadFile = (localFile, storage) => {
     });
 };
 
-module.exports = { jwtSign, uploadFile };
+const getRatings = (ratings) => {
+  const five = ratings
+    .filter((item) => _.isEqual(item.rating, 5))
+    .map((item) => item.count);
+  const four = ratings
+    .filter((item) => _.isEqual(item.rating, 4))
+    .map((item) => item.count);
+  const three = ratings
+    .filter((item) => _.isEqual(item.rating, 3))
+    .map((item) => item.count);
+  const two = ratings
+    .filter((item) => _.isEqual(item.rating, 2))
+    .map((item) => item.count);
+  const one = ratings
+    .filter((item) => _.isEqual(item.rating, 1))
+    .map((item) => item.count);
+
+  const rate =
+    (5 * five[0] + 4 * four[0] + 3 * three[0] + 2 * two[0] + 1 * one[0]) /
+    (five[0] + four[0] + three[0] + two[0] + one[0]);
+
+  return _.round(rate, 1) || 0;
+};
+module.exports = { jwtSign, uploadFile, getRatings };
