@@ -254,7 +254,7 @@ router.get("/list/:id", async (req, res) => {
   res.status(200).json({ capstone });
 });
 
-router.get("/dashboard", verifyToken, async (req, res) => {
+router.get("/dashboard/most_rated", verifyToken, async (req, res) => {
   const capstone = await Capstone.find()
     .populate("tags")
     .populate({
@@ -274,6 +274,31 @@ router.get("/dashboard", verifyToken, async (req, res) => {
       select: "first_name last_name",
     })
     .sort({ rate: -1 })
+    .limit(5);
+
+  res.status(200).json({ capstone });
+});
+
+router.get("/dashboard/most_view", verifyToken, async (req, res) => {
+  const capstone = await Capstone.find({ website_views: { $gte: 1 } })
+    .populate("tags")
+    .populate({
+      path: "uploaded_by",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "approver",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "comments.user",
+      select: "first_name last_name",
+    })
+    .populate({
+      path: "ratings.rate_by",
+      select: "first_name last_name",
+    })
+    .sort({ website_views: -1 })
     .limit(5);
 
   res.status(200).json({ capstone });
