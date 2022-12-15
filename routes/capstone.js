@@ -254,7 +254,7 @@ router.get("/list/:id", async (req, res) => {
   res.status(200).json({ capstone });
 });
 
-router.get("/dashboard/most_rated", verifyToken, async (req, res) => {
+router.get("/dashboard/most_rated", async (req, res) => {
   const capstone = await Capstone.find()
     .populate("tags")
     .populate({
@@ -279,7 +279,7 @@ router.get("/dashboard/most_rated", verifyToken, async (req, res) => {
   res.status(200).json({ capstone });
 });
 
-router.get("/dashboard/most_view", verifyToken, async (req, res) => {
+router.get("/dashboard/most_view", async (req, res) => {
   const capstone = await Capstone.find({ website_views: { $gte: 1 } })
     .populate("tags")
     .populate({
