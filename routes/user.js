@@ -1,86 +1,75 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
-const multer = require("multer");
-const fs = require("fs");
 const _ = require("lodash");
 
-const { jwtSign, uploadFile } = require("../utils/utils");
+const { jwtSign, uploadFile, uploadToStorage } = require("../utils/utils");
 
 const saltRounds = 10;
-
-const { store, storage } = require("../utils/store");
 
 const User = require("../models/User");
 const Role = require("../models/Role");
 const Type = require("../models/Type");
 const { verifyToken } = require("../middleware/authorization");
 
-router.post("/register", async (req, res) => {
-  const upload = multer({ storage: store }).single("attachment");
-  upload(req, res, async () => {
-    const { username, password, first_name, last_name, email, type_id } =
-      req.body;
+router.post("/register", uploadFile.any(), async (req, res) => {
+  const { username, password, first_name, last_name, email, type_id } =
+    req.body;
 
-    const path = `./uploads/${req.file.filename}`;
+  const userUsername = await User.find({ username: username });
+  const userEmail = await User.find({ email: email });
 
-    const userUsername = await User.find({ username: username });
-    const userEmail = await User.find({ email: email });
+  if (!userUsername.length && !userEmail.length) {
+    const links = await uploadToStorage(req.files);
+    bcrypt.hash(password, saltRounds, async (err, hash) => {
+      const role = await Role.findOne({ description: "User" });
 
-    if (!userUsername.length && !userEmail.length) {
-      const attachmentLink = await uploadFile(path, storage);
-      bcrypt.hash(password, saltRounds, async (err, hash) => {
-        const role = await Role.findOne({ description: "User" });
-
-        const user = await User.create({
-          username: username,
-          password: hash,
-          first_name: first_name,
-          last_name: last_name,
-          email: email,
-          status: "pending",
-          attachment: attachmentLink,
-          role: role._id,
-          type: type_id,
-        });
-        const token = jwtSign(user.id);
-
-        const type = await Type.findById(type_id);
-
-        const userData = _.omit(user._doc, ["role_id", "type_id"]);
-
-        res.status(200).json({
-          data: {
-            user: {
-              ...userData,
-              role: { ...role._doc },
-              type: { ...type._doc },
-            },
-            token: token,
-          },
-          errors: null,
-        });
+      const user = await User.create({
+        username: username,
+        password: hash,
+        first_name: first_name,
+        last_name: last_name,
+        email: email,
+        status: "pending",
+        attachment: links[0].value,
+        role: role._id,
+        type: type_id,
       });
-    } else {
-      let errors = [];
-      if (userUsername.length) {
-        errors.push({
-          field: "username",
-          error: "Username already exist",
-        });
-      }
+      const token = jwtSign(user.id);
 
-      if (userEmail.length) {
-        errors.push({
-          field: "email",
-          error: "Email already exist",
-        });
-      }
-      res.status(200).json({ data: null, errors });
+      const type = await Type.findById(type_id);
+
+      const userData = _.omit(user._doc, ["role_id", "type_id"]);
+
+      res.status(200).json({
+        data: {
+          user: {
+            ...userData,
+            role: { ...role._doc },
+            type: { ...type._doc },
+          },
+          token: token,
+        },
+        errors: null,
+      });
+    });
+  } else {
+    let errors = [];
+    if (userUsername.length) {
+      errors.push({
+        field: "username",
+        error: "Username already exist",
+      });
     }
 
-    fs.unlinkSync(path);
-  });
+    if (userEmail.length) {
+      errors.push({
+        field: "email",
+        error: "Email already exist",
+      });
+    }
+    res.status(200).json({ data: null, errors });
+  }
 });
 
 router.post("/login", async (req, res) => {
