@@ -1,14 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const fs = require("fs");
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-const { uploadFile, getRatings } = require("../utils/utils");
+const { uploadFile, getRatings, uploadToStorage } = require("../utils/utils");
 const { verifyToken } = require("../middleware/authorization");
-
-const { store, storage } = require("../utils/store");
 
 const Capstone = require("../models/Capstone");
 
@@ -35,86 +31,64 @@ router.get("/list", async (req, res) => {
   res.status(200).json({ capstones });
 });
 
-router.post("/add", verifyToken, async (req, res) => {
-  const upload = multer({ storage: store }).fields([
-    {
-      name: "logo",
-      maxCount: 1,
-    },
-    {
-      name: "images",
-      maxCount: 3,
-    },
-    {
-      name: "document",
-      maxCount: 1,
-    },
-  ]);
-  upload(req, res, async () => {
-    const { title, description, website, tags, professor, uploaded_by } =
-      req.body;
+router.post("/add", uploadFile.any(), async (req, res) => {
+  const { title, description, website, tags, professor, uploaded_by } =
+    req.body;
+  const links = await uploadToStorage(req.files);
+  const logo = links.filter((link) => link.key === "logo");
+  const document = links.filter((link) => link.key === "document");
+  const images = links
+    .filter((link) => link.key === "images")
+    .map((link) => link.value);
 
-    const images = req.files.images.map((image) => image.path);
-
-    const documentPath = await uploadFile(req.files.document[0].path, storage);
-    const logoPath = await uploadFile(req.files.logo[0].path, storage);
-
-    let imagesPath = [];
-    for (const image of images) {
-      const path = await uploadFile(image, storage);
-      imagesPath.push(path);
-    }
-
-    Capstone.create({
-      title: title,
-      description: description,
-      website: website,
-      website_views: 0,
-      percentage: 0,
-      tags: tags,
-      approver: professor,
-      uploaded_by: uploaded_by,
-      documents: documentPath,
-      logo: logoPath,
-      images: imagesPath,
-      ratings: [
-        {
-          rating: 1,
-          count: 0,
-          rate_by: [],
-        },
-        {
-          rating: 2,
-          count: 0,
-          rate_by: [],
-        },
-        {
-          rating: 3,
-          count: 0,
-          rate_by: [],
-        },
-        {
-          rating: 4,
-          count: 0,
-          rate_by: [],
-        },
-        {
-          rating: 5,
-          count: 0,
-          rate_by: [],
-        },
-      ],
-      rate: 0,
+  Capstone.create({
+    title: title,
+    description: description,
+    website: website,
+    website_views: 0,
+    percentage: 0,
+    tags: tags,
+    approver: professor,
+    uploaded_by: uploaded_by,
+    documents: document[0].value,
+    logo: logo[0].value,
+    images: images,
+    ratings: [
+      {
+        rating: 1,
+        count: 0,
+        rate_by: [],
+      },
+      {
+        rating: 2,
+        count: 0,
+        rate_by: [],
+      },
+      {
+        rating: 3,
+        count: 0,
+        rate_by: [],
+      },
+      {
+        rating: 4,
+        count: 0,
+        rate_by: [],
+      },
+      {
+        rating: 5,
+        count: 0,
+        rate_by: [],
+      },
+    ],
+    rate: 0,
+  })
+    .then(() => {
+      res.sendStatus(200);
     })
-      .then(() => {
-        const dir = "./uploads";
-        fs.readdirSync(dir).forEach((f) => fs.rmSync(`${dir}/${f}`));
-        res.sendStatus(200);
-      })
-      .catch(() => {
-        res.sendStatus(500);
-      });
-  });
+    .catch((err) => {
+      console.log(err);
+      res.sendStatus(500);
+    });
 });
 
 router.post("/update/rating", verifyToken, async (req, res) => {
