@@ -10,35 +10,6 @@ const jwtSign = (data) => {
   });
 };
 
-/*const uploadFile = (localFile, storage) => {
-  let uuid = UUID();
-  const bucketName = process.env.STORAGE_BUCKET;
-
-  return storage
-    .bucket(bucketName)
-    .upload(localFile, {
-      uploadType: "media",
-      metadata: {
-        metadata: {
-          firebaseStorageDownloadTokens: uuid,
-        },
-      },
-    })
-    .then((data) => {
-      console.log(data);
-      let file = data[0];
-
-      return Promise.resolve(
-        "https://firebasestorage.googleapis.com/v0/b/" +
-          bucketName +
-          "/o/" +
-          encodeURIComponent(file.name) +
-          "?alt=media&token=" +
-          uuid
-      );
-    });
-};*/
-
 const uploadFile = multer({
   storage: multer.memoryStorage(),
 });
@@ -83,35 +54,6 @@ const uploadToStorage = async (files) => {
   });
 };
 
-const getUploadLink = (bucketName, name, uuid) => {
-  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(
-    name
-  )}?alt=media&token=${uuid}
-    `;
-};
-
-const upload = async (file) => {
-  let uuid = UUID();
-  const bucketName = process.env.STORAGE_BUCKET;
-
-  const blob = firebase.bucket.file(file.originalname);
-
-  const d = blob
-    .createWriteStream({
-      metadata: {
-        contentType: file.mimetype,
-        firebaseStorageDownloadTokens: uuid,
-      },
-    })
-    .end(() => {
-      return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(
-        file.originalname
-      )}?alt=media&token=${uuid}
-  `;
-    });
-  return d;
-};
-
 const getRatings = (ratings) => {
   const five = ratings
     .filter((item) => _.isEqual(item.rating, 5))
@@ -135,11 +77,10 @@ const getRatings = (ratings) => {
 
   return _.round(rate, 1) || 0;
 };
+
 module.exports = {
   jwtSign,
   uploadFile,
-  getRatings,
-  getUploadLink,
-  upload,
   uploadToStorage,
+  getRatings,
 };
