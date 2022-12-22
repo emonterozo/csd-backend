@@ -22,7 +22,9 @@ const uploadToStorage = async (files) => {
     const bucketName = process.env.STORAGE_BUCKET;
     const { originalname, buffer, mimetype, fieldname } = value;
 
-    const blob = firebase.bucket.file(originalname.replace(/ /g, "_"));
+    const filename = `${uuid}.${originalname.split(".").pop()}`;
+
+    const blob = firebase.bucket.file(filename);
 
     const promise = new Promise((resolve, reject) => {
       const blobStream = blob.createWriteStream({
@@ -37,7 +39,7 @@ const uploadToStorage = async (files) => {
         })
         .on("finish", async () => {
           const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(
-            originalname.replace(/ /g, "_")
+            filename
           )}?alt=media&token=${uuid}
     `;
           resolve({
