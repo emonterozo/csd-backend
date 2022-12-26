@@ -33,16 +33,20 @@ app.get("/types", async (req, res) => {
   res.status(200).json({ types });
 });
 
-app.get("/tags_professor", verifyToken, async (req, res) => {
+app.get("/tags", verifyToken, async (req, res) => {
   const tags = await Tag.find();
 
+  res.status(200).json({ tags });
+});
+
+app.get("/professors", async (req, res) => {
   const type = await Type.find({ description: "Professor" });
   const list = await User.find({ type: type[0]._id });
-  const professor = list.map((item) => ({
+  const professors = list.map((item) => ({
     _id: item._id,
-    name: `${item.first_name} ${item.last_name}`,
+    description: `${item.first_name} ${item.last_name}`,
   }));
-  res.status(200).json({ tags, professor });
+  res.status(200).json({ professors });
 });
 
 app.listen(port, () => {

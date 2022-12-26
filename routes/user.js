@@ -13,8 +13,15 @@ const Type = require("../models/Type");
 const { verifyToken } = require("../middleware/authorization");
 
 router.post("/register", uploadFile.any(), async (req, res) => {
-  const { username, password, first_name, last_name, email, type_id } =
-    req.body;
+  const {
+    username,
+    password,
+    first_name,
+    last_name,
+    email,
+    type_id,
+    professor_id,
+  } = req.body;
 
   const userUsername = await User.find({ username: username });
   const userEmail = await User.find({ email: email });
@@ -34,6 +41,7 @@ router.post("/register", uploadFile.any(), async (req, res) => {
         attachment: links[0].value,
         role: role._id,
         type: type_id,
+        professor: professor_id,
       });
       const token = jwtSign(user.id);
 
