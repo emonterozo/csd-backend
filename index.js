@@ -21,7 +21,6 @@ const port = process.env.PORT;
 const User = require("./models/User");
 const Type = require("./models/Type");
 const Tag = require("./models/Tag");
-const Link = require("./models/Link");
 
 const userRouter = require("./routes/user");
 const capstoneRouter = require("./routes/capstone");
@@ -44,11 +43,6 @@ app.get("/tags_professor", verifyToken, async (req, res) => {
     name: `${item.first_name} ${item.last_name}`,
   }));
   res.status(200).json({ tags, professor });
-});
-
-app.get("/link", async (req, res) => {
-  const links = await Link.find();
-  res.status(200).json({ links });
 });
 
 app.listen(port, () => {
