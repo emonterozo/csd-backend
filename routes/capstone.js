@@ -3,7 +3,12 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-const { uploadFile, getRatings, uploadToStorage } = require("../utils/utils");
+const {
+  uploadFile,
+  getRatings,
+  uploadToStorage,
+  isUrl,
+} = require("../utils/utils");
 const { verifyToken } = require("../middleware/authorization");
 
 const Capstone = require("../models/Capstone");
@@ -190,6 +195,31 @@ router.post("/add", verifyToken, uploadFile.any(), async (req, res) => {
       console.log(err);
       res.sendStatus(500);
     });
+});
+
+router.post("/update", verifyToken, uploadFile.any(), async (req, res) => {
+  const { title, description, website, tags, id, initialImages, initialLogo } =
+    req.body;
+  const links = await uploadToStorage(req.files);
+
+  const logo = links.filter((link) => link.key === "logo");
+  const images = links
+    .filter((link) => link.key === "images")
+    .map((link) => link.value);
+
+  const holder = initialImages.filter((image) => isUrl(image));
+  const finalImages = [...holder, ...images];
+
+  Capstone.findByIdAndUpdate(id, {
+    title: title,
+    description: description,
+    website: website,
+    tags: tags,
+    images: finalImages,
+    logo: logo.length > 0 ? logo[0].value : initialLogo,
+  })
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
 });
 
 router.post("/update/rating", verifyToken, async (req, res) => {
