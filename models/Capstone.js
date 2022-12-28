@@ -8,7 +8,13 @@ const capstoneSchema = new Schema(
     logo: String,
     website: String,
     website_views: Number,
-    documents: String,
+    documents: [
+      {
+        key: String,
+        path: String,
+        status: String,
+      },
+    ],
     images: [String],
     ratings: [
       {
