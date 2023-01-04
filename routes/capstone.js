@@ -296,16 +296,33 @@ router.post("/update/rating", verifyToken, async (req, res) => {
 router.post("/update/percentage", verifyToken, async (req, res) => {
   const { id, status, chapter } = req.body;
 
-  const capstone = await Capstone.findById(id).select("documents");
+  const capstone = await Capstone.findById(id).select("documents percentage");
+
+  const selectedChapter = capstone.documents.find((document) =>
+    _.isEqual(document.key, chapter.toLowerCase())
+  );
+
+  let percentage = 0;
+
+  if (_.isEqual(selectedChapter.status, "pending")) {
+    percentage = _.isEqual(status, "approved")
+      ? capstone.percentage + 20
+      : capstone.percentage;
+  } else {
+    percentage = _.isEqual(status, "approved")
+      ? capstone.percentage + 20
+      : capstone.percentage - 20;
+  }
 
   const documents = capstone.documents.map((document) => {
     return _.isEqual(document.key, chapter.toLowerCase())
       ? { ...document._doc, status: status }
       : { ...document._doc };
   });
+
   Capstone.findByIdAndUpdate(id, {
     documents: documents,
-    $inc: { percentage: _.isEqual(status, "approved") ? 20 : 0 },
+    percentage: percentage,
   })
     .then(() => res.sendStatus(200))
     .catch(() => res.sendStatus(500));
@@ -370,7 +387,7 @@ router.get("/list/:id", async (req, res) => {
 });
 
 router.get("/dashboard/most_rated", async (req, res) => {
-  const capstone = await Capstone.find()
+  const capstone = await Capstone.find({ percentage: 100 })
     .populate("tags")
     .populate({
       path: "uploaded_by",
@@ -395,7 +412,10 @@ router.get("/dashboard/most_rated", async (req, res) => {
 });
 
 router.get("/dashboard/most_view", async (req, res) => {
-  const capstone = await Capstone.find({ website_views: { $gte: 1 } })
+  const capstone = await Capstone.find({
+    percentage: 100,
+    website_views: { $gte: 1 },
+  })
     .populate("tags")
     .populate({
       path: "uploaded_by",
