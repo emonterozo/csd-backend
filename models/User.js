@@ -12,7 +12,7 @@ const userSchema = new Schema(
     attachment: String,
     role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     type: { type: mongoose.Schema.Types.ObjectId, ref: "Type" },
-    professor: String,
+    professor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { collection: "users" }
 );

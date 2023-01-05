@@ -10,6 +10,7 @@ const saltRounds = 10;
 const User = require("../models/User");
 const Role = require("../models/Role");
 const Type = require("../models/Type");
+const Capstone = require("../models/Capstone");
 const { verifyToken } = require("../middleware/authorization");
 
 router.post("/register", uploadFile.any(), async (req, res) => {
@@ -84,7 +85,11 @@ router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const users = await User.find({ username: username })
     .populate("role")
-    .populate("type");
+    .populate("type")
+    .populate({
+      path: "professor",
+      select: "first_name last_name username email _id",
+    });
 
   if (users.length) {
     bcrypt.compare(password, users[0].password, async (err, result) => {
@@ -127,4 +132,65 @@ router.post("/update_status", verifyToken, async (req, res) => {
 
   return res.status(200).json({ user: updatedUser });
 });
+
+router.post("/update", async (req, res) => {
+  const { id, username, first_name, last_name, email, professor_id } = req.body;
+
+  const userUsername = await User.find({
+    username: username,
+    _id: { $ne: id },
+  });
+  const userEmail = await User.find({ email: email, _id: { $ne: id } });
+
+  if (!userEmail.length && !userUsername.length) {
+    await User.findByIdAndUpdate(id, {
+      first_name: first_name,
+      last_name: last_name,
+      username: username,
+      email: email,
+      professor: professor_id,
+    });
+    await Capstone.findOneAndUpdate(
+      { uploaded_by: id },
+      { approver: professor_id }
+    );
+
+    const users = await User.findById(id)
+      .populate("role")
+      .populate("type")
+      .populate({
+        path: "professor",
+        select: "first_name last_name username email _id",
+      });
+
+    if (users) {
+      res.status(200).json({
+        data: {
+          user: {
+            ...users._doc,
+          },
+        },
+        error: null,
+      });
+    }
+  } else {
+    let errors = [];
+
+    if (userUsername.length) {
+      errors.push({
+        field: "username",
+        error: "Username already exist",
+      });
+    }
+
+    if (userEmail.length) {
+      errors.push({
+        field: "email",
+        error: "Email already exist",
+      });
+    }
+    res.status(200).json({ data: null, errors });
+  }
+});
+
 module.exports = router;
