@@ -133,7 +133,7 @@ router.post("/update_status", verifyToken, async (req, res) => {
   return res.status(200).json({ user: updatedUser });
 });
 
-router.post("/update", async (req, res) => {
+router.post("/update", verifyToken, async (req, res) => {
   const { id, username, first_name, last_name, email, professor_id } = req.body;
 
   const userUsername = await User.find({
@@ -170,7 +170,7 @@ router.post("/update", async (req, res) => {
             ...users._doc,
           },
         },
-        error: null,
+        errors: null,
       });
     }
   } else {
