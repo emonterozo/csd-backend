@@ -150,10 +150,13 @@ router.post("/update", verifyToken, async (req, res) => {
       email: email,
       professor: professor_id,
     });
-    await Capstone.findOneAndUpdate(
-      { uploaded_by: id },
-      { approver: professor_id }
-    );
+
+    if (!_.isEmpty(professor_id)) {
+      await Capstone.findOneAndUpdate(
+        { uploaded_by: id },
+        { approver: professor_id }
+      );
+    }
 
     const users = await User.findById(id)
       .populate("role")
