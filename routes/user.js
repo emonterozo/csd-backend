@@ -43,7 +43,7 @@ router.post("/register", uploadFile.any(), async (req, res) => {
         attachment: links[0].value,
         role: role._id,
         type: type_id,
-        professor: professor_id,
+        professor: _.isEmpty(professor_id) ? null : professor_id,
       });
       const token = jwtSign(user.id);
 
@@ -136,9 +136,9 @@ router.post("/update_status", verifyToken, async (req, res) => {
 
 router.post("/update", verifyToken, async (req, res) => {
   const { id, username, first_name, last_name, email, professor_id } = req.body;
+  console.log(req.body);
 
   const userId = mongoose.Types.ObjectId(id);
-  const professorId = mongoose.Types.ObjectId(professor_id);
 
   const userUsername = await User.find({
     username: username,
@@ -152,13 +152,13 @@ router.post("/update", verifyToken, async (req, res) => {
       last_name: last_name,
       username: username,
       email: email,
-      professor: professorId,
+      professor: _.isEmpty(professor_id) ? null : professor_id,
     });
 
     if (!_.isEmpty(professor_id)) {
       await Capstone.findOneAndUpdate(
         { uploaded_by: userId },
-        { approver: professorId }
+        { approver: professor_id }
       );
     }
 
