@@ -136,29 +136,32 @@ router.post("/update_status", verifyToken, async (req, res) => {
 router.post("/update", verifyToken, async (req, res) => {
   const { id, username, first_name, last_name, email, professor_id } = req.body;
 
+  const userId = mongoose.Types.ObjectId(id);
+  const professorId = mongoose.Types.ObjectId(professor_id);
+
   const userUsername = await User.find({
     username: username,
-    _id: { $ne: id },
+    _id: { $ne: userId },
   });
-  const userEmail = await User.find({ email: email, _id: { $ne: id } });
+  const userEmail = await User.find({ email: email, _id: { $ne: userId } });
 
   if (!userEmail.length && !userUsername.length) {
-    await User.findByIdAndUpdate(id, {
+    await User.findByIdAndUpdate(userId, {
       first_name: first_name,
       last_name: last_name,
       username: username,
       email: email,
-      professor: professor_id,
+      professor: professorId,
     });
 
     if (!_.isEmpty(professor_id)) {
       await Capstone.findOneAndUpdate(
-        { uploaded_by: id },
-        { approver: professor_id }
+        { uploaded_by: userId },
+        { approver: professorId }
       );
     }
 
-    const users = await User.findById(id)
+    const users = await User.findById(userId)
       .populate("role")
       .populate("type")
       .populate({
