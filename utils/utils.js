@@ -3,6 +3,8 @@ const UUID = require("uuid-v4");
 const _ = require("lodash");
 const multer = require("multer");
 const firebase = require("./firebase");
+const nodemailer = require("nodemailer");
+const otpGenerator = require("otp-generator");
 
 const jwtSign = (data) => {
   return jwt.sign({ id: data }, process.env.SECRET_KEY, {
@@ -86,10 +88,66 @@ const isUrl = (s) => {
   return regexp.test(s);
 };
 
+const sendMail = async (to, subject, html) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL,
+    to: to,
+    subject: subject,
+    html: html,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+const emailVerificationMessage = (first_name, last_name, email, otp) => {
+  return `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+      <div style="margin:50px auto;width:70%;padding:20px 0">
+        <div style="border-bottom:1px solid #eee">
+          <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">CSD Project</a>
+        </div>
+        <p style="font-size:1.1em">Hi ${first_name} ${last_name},</p>
+        <p>Use the following OTP to complete your Sign Up procedures. OTP is valid for 5 minutes.</p>
+        <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
+        <p>Or click this link
+        <br/>
+        <a href="http://localhost?email=${email}">http://localhost?email=${email}</a>
+        </p>
+        <p style="font-size:0.9em;">Regards,<br />CSD Team</p>
+        <hr style="border:none;border-top:1px solid #eee" />
+        <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
+          <p>CSD Project</p>
+          <p>2341 Sample Address</p>
+          <p>Philippines</p>
+        </div>
+      </div>
+    </div>`;
+};
+
+const generateOTP = () => {
+  const otp = otpGenerator.generate(6, {
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  return otp;
+};
+
 module.exports = {
   jwtSign,
   uploadFile,
   uploadToStorage,
   getRatings,
   isUrl,
+  sendMail,
+  emailVerificationMessage,
+  generateOTP,
 };
