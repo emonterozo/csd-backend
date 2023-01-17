@@ -44,7 +44,7 @@ app.get("/professors", async (req, res) => {
   const list = await User.find({ type: type[0]._id });
   const professors = list.map((item) => ({
     _id: item._id,
-    description: `${item.first_name} ${item.last_name}`,
+    description: `${item.honorific} ${item.first_name} ${item.last_name}`,
   }));
   res.status(200).json({ professors });
 });

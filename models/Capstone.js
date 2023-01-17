@@ -8,13 +8,6 @@ const capstoneSchema = new Schema(
     logo: String,
     website: String,
     website_views: Number,
-    documents: [
-      {
-        key: String,
-        path: String,
-        status: String,
-      },
-    ],
     images: [String],
     ratings: [
       {
@@ -23,7 +16,7 @@ const capstoneSchema = new Schema(
         rate_by: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       },
     ],
-    rate: Number,
+    is_verified: Boolean,
     approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     tags: { type: [mongoose.Schema.Types.ObjectId], ref: "Tag" },
     percentage: Number,

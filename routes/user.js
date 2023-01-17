@@ -28,6 +28,7 @@ router.post("/register", uploadFile.any(), async (req, res) => {
   const {
     username,
     password,
+    honorific,
     first_name,
     last_name,
     email,
@@ -46,6 +47,7 @@ router.post("/register", uploadFile.any(), async (req, res) => {
       const user = await User.create({
         username: username,
         password: hash,
+        honorific: _.isEmpty(honorific) ? null : honorific,
         first_name: first_name,
         last_name: last_name,
         email: email,
@@ -147,8 +149,15 @@ router.post("/update_status", verifyToken, async (req, res) => {
 });
 
 router.post("/update", verifyToken, async (req, res) => {
-  const { id, username, first_name, last_name, email, professor_id } = req.body;
-  console.log(req.body);
+  const {
+    id,
+    username,
+    honorific,
+    first_name,
+    last_name,
+    email,
+    professor_id,
+  } = req.body;
 
   const userId = mongoose.Types.ObjectId(id);
 
@@ -160,6 +169,7 @@ router.post("/update", verifyToken, async (req, res) => {
 
   if (!userEmail.length && !userUsername.length) {
     await User.findByIdAndUpdate(userId, {
+      honorific: _.isEmpty(honorific) ? null : honorific,
       first_name: first_name,
       last_name: last_name,
       username: username,

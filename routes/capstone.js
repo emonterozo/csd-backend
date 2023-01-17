@@ -14,7 +14,7 @@ const { verifyToken } = require("../middleware/authorization");
 const Capstone = require("../models/Capstone");
 
 router.get("/list", async (req, res) => {
-  const capstones = await Capstone.find({ percentage: 100 })
+  const capstones = await Capstone.find()
     .populate("tags")
     .populate({
       path: "uploaded_by",
@@ -91,57 +91,6 @@ router.post("/add", verifyToken, uploadFile.any(), async (req, res) => {
     req.body;
   const links = await uploadToStorage(req.files);
 
-  const initialDocuments = [
-    {
-      key: "chapter 1",
-      path: "",
-      status: "",
-    },
-    {
-      key: "chapter 2",
-      path: "",
-      status: "",
-    },
-    {
-      key: "chapter 3",
-      path: "",
-      status: "",
-    },
-    {
-      key: "chapter 4",
-      path: "",
-      status: "",
-    },
-    {
-      key: "chapter 5",
-      path: "",
-      status: "",
-    },
-  ];
-
-  const uploadedDocuments = links
-    .filter((link) => link.key.includes("chapter"))
-    .map((link) => ({
-      key: link.key,
-      path: link.value,
-      status: "pending",
-    }));
-
-  const documents = [
-    ...uploadedDocuments,
-    ...initialDocuments.filter(
-      (el1) => !uploadedDocuments.some((el2) => el2.key === el1.key)
-    ),
-  ].sort((a, b) => {
-    if (a.key < b.key) {
-      return -1;
-    }
-    if (a.key > b.key) {
-      return 1;
-    }
-    return 0;
-  });
-
   const logo = links.filter((link) => link.key === "logo");
   const images = links
     .filter((link) => link.key === "images")
@@ -152,11 +101,10 @@ router.post("/add", verifyToken, uploadFile.any(), async (req, res) => {
     description: description,
     website: website,
     website_views: 0,
-    percentage: 0,
     tags: tags,
     approver: professor,
     uploaded_by: uploaded_by,
-    documents: documents,
+    is_verified: false,
     logo: logo[0].value,
     images: images,
     ratings: [
@@ -186,7 +134,6 @@ router.post("/add", verifyToken, uploadFile.any(), async (req, res) => {
         rate_by: [],
       },
     ],
-    rate: 0,
   })
     .then(() => {
       res.sendStatus(200);
@@ -353,7 +300,7 @@ router.post("/add/comment", verifyToken, (req, res) => {
     .catch(() => res.sendStatus(500));
 });
 
-router.get("/comments/:id", async (req, res) => {
+router.get("/comments/:id/:rating", async (req, res) => {
   const data = await Capstone.findById(req.params.id)
     .populate({
       path: "comments.user",
@@ -372,33 +319,15 @@ router.get("/comments/:id", async (req, res) => {
     };
   });
 
-  res.status(200).json({ comments: comments });
-});
-
-router.get("/filter_comments/:id/:rating", async (req, res) => {
-  const data = await Capstone.findById(req.params.id)
-    .populate({
-      path: "comments.user",
-      select: "first_name last_name",
-    })
-    .select("comments ratings");
-
-  const comments = data.comments.map((comment) => {
-    const rating = data.ratings.find((rating) =>
-      rating.rate_by.includes(comment.user._id)
+  let result = [...comments];
+  // 6 = All
+  if (!_.isEqual(parseInt(req.params.rating, 10), 6)) {
+    result = comments.filter((comment) =>
+      _.isEqual(parseInt(req.params.rating, 10), comment.rate)
     );
+  }
 
-    return {
-      ...comment._doc,
-      rate: rating?.rating || 0,
-    };
-  });
-
-  const filteredComments = comments.filter((comment) =>
-    _.isEqual(parseInt(req.params.rating, 10), comment.rate)
-  );
-
-  res.status(200).json({ comments: filteredComments });
+  res.status(200).json({ comments: result });
 });
 
 router.get("/list/:id", async (req, res) => {
@@ -425,7 +354,7 @@ router.get("/list/:id", async (req, res) => {
 });
 
 router.get("/dashboard/most_rated", async (req, res) => {
-  const capstone = await Capstone.find({ percentage: 100 })
+  const capstone = await Capstone.find()
     .populate("tags")
     .populate({
       path: "uploaded_by",
@@ -451,7 +380,6 @@ router.get("/dashboard/most_rated", async (req, res) => {
 
 router.get("/dashboard/most_view", async (req, res) => {
   const capstone = await Capstone.find({
-    percentage: 100,
     website_views: { $gte: 1 },
   })
     .populate("tags")
@@ -515,5 +443,15 @@ router.post(
       .catch(() => res.sendStatus(500));
   }
 );
+
+router.post("/update/verified", verifyToken, (req, res) => {
+  const { id } = req.body;
+
+  Capstone.findByIdAndUpdate(id, {
+    is_verified: true,
+  })
+    .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500));
+});
 
 module.exports = router;
