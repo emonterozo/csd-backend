@@ -354,13 +354,51 @@ router.post("/add/comment", verifyToken, (req, res) => {
 });
 
 router.get("/comments/:id", async (req, res) => {
-  const comments = await Capstone.findById(req.params.id)
+  const data = await Capstone.findById(req.params.id)
     .populate({
       path: "comments.user",
       select: "first_name last_name",
     })
-    .select("comments");
-  res.status(200).json(comments);
+    .select("comments ratings");
+
+  const comments = data.comments.map((comment) => {
+    const rating = data.ratings.find((rating) =>
+      rating.rate_by.includes(comment.user._id)
+    );
+
+    return {
+      ...comment._doc,
+      rate: rating?.rating || 0,
+    };
+  });
+
+  res.status(200).json({ comments: comments });
+});
+
+router.get("/filter_comments/:id/:rating", async (req, res) => {
+  const data = await Capstone.findById(req.params.id)
+    .populate({
+      path: "comments.user",
+      select: "first_name last_name",
+    })
+    .select("comments ratings");
+
+  const comments = data.comments.map((comment) => {
+    const rating = data.ratings.find((rating) =>
+      rating.rate_by.includes(comment.user._id)
+    );
+
+    return {
+      ...comment._doc,
+      rate: rating?.rating || 0,
+    };
+  });
+
+  const filteredComments = comments.filter((comment) =>
+    _.isEqual(parseInt(req.params.rating, 10), comment.rate)
+  );
+
+  res.status(200).json({ comments: filteredComments });
 });
 
 router.get("/list/:id", async (req, res) => {
