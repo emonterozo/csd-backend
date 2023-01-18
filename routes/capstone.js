@@ -22,7 +22,7 @@ router.get("/list", async (req, res) => {
     })
     .populate({
       path: "approver",
-      select: "first_name last_name",
+      select: "honorific first_name last_name",
     })
     .populate({
       path: "comments.user",
@@ -47,7 +47,7 @@ router.get("/assigned/:id", async (req, res) => {
     })
     .populate({
       path: "approver",
-      select: "first_name last_name",
+      select: "honorific first_name last_name",
     })
     .populate({
       path: "comments.user",
@@ -72,7 +72,7 @@ router.get("/owned/:id", async (req, res) => {
     })
     .populate({
       path: "approver",
-      select: "first_name last_name",
+      select: "honorific first_name last_name",
     })
     .populate({
       path: "comments.user",
@@ -339,7 +339,7 @@ router.get("/list/:id", async (req, res) => {
     })
     .populate({
       path: "approver",
-      select: "first_name last_name",
+      select: "honorific first_name last_name",
     })
     .populate({
       path: "comments.user",
