@@ -4,6 +4,7 @@ const router = express.Router();
 const bcrypt = require("bcrypt");
 const _ = require("lodash");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 
 const {
   jwtSign,
@@ -275,6 +276,14 @@ router.post("/forgot_password", async (req, res) => {
   const user = await User.findOne({ email: email });
 
   if (user) {
+    const token = jwt.sign(
+      {
+        email: email,
+      },
+      process.env.SECRET_KEY,
+      { expiresIn: "3h" }
+    );
+
     const info = await sendMail(
       user.email,
       "Reset Password",
@@ -285,7 +294,7 @@ router.post("/forgot_password", async (req, res) => {
         </div>
         <p style="font-size:1.1em">Hi, ${user.first_name} ${user.last_name}</p>
         <p>We received a request to reset the password for your account. To reset your password click the button below.</p>
-        <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;"><a style="text-decoration:none;color:white" href="https://localhost:4000">Reset Password</a></h2>
+        <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;"><a style="text-decoration:none;color:white" href="https://localhost:4000/forgot_password?token=${token}">Reset Password</a></h2>
         <p style="font-size:0.9em;">Regards,<br />CSD Team</p>
         <hr style="border:none;border-top:1px solid #eee" />
         <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
@@ -305,12 +314,20 @@ router.post("/forgot_password", async (req, res) => {
 });
 
 router.post("/update_password", async (req, res) => {
-  const { email, password } = req.body;
+  const { token, password } = req.body;
 
-  bcrypt.hash(password, saltRounds, async (err, hash) => {
-    await User.findOneAndUpdate({ email: email }, { password: hash });
+  jwt.verify(token, process.env.SECRET_KEY, function (err, decoded) {
+    if (err) {
+      res.status(200).json({ error: "Token Expired." });
+    } else {
+      const { email } = decoded;
 
-    res.sendStatus(200);
+      bcrypt.hash(password, saltRounds, async (err, hash) => {
+        await User.findOneAndUpdate({ email: email }, { password: hash });
+
+        res.status(200).json({ error: null });
+      });
+    }
   });
 });
 
