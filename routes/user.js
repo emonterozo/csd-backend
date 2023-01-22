@@ -294,7 +294,7 @@ router.post("/forgot_password", async (req, res) => {
         </div>
         <p style="font-size:1.1em">Hi, ${user.first_name} ${user.last_name}</p>
         <p>We received a request to reset the password for your account. To reset your password click the button below.</p>
-        <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;"><a style="text-decoration:none;color:white" href="https://localhost:4000/forgot_password?token=${token}">Reset Password</a></h2>
+        <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;"><a style="text-decoration:none;color:white" href="${process.env.WEB_BASE_URL}/change_password?token=${token}">Reset Password</a></h2>
         <p style="font-size:0.9em;">Regards,<br />CSD Team</p>
         <hr style="border:none;border-top:1px solid #eee" />
         <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
