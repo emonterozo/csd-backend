@@ -42,8 +42,8 @@ const uploadToStorage = async (files) => {
         .on("finish", async () => {
           const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(
             filename
-          )}?alt=media&token=${uuid}
-    `;
+          )}?alt=media&token=${uuid}`;
+
           resolve({
             key: fieldname,
             value: publicUrl,
