@@ -118,7 +118,7 @@ const emailVerificationMessage = (first_name, last_name, email, otp) => {
         <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
         <p>Or click this link
         <br/>
-        <a href="http://localhost?email=${email}">http://localhost?email=${email}</a>
+        <a href="${process.env.WEB_BASE_URL}/verify?email=${email}">${process.env.WEB_BASE_URL}/verify?email=${email}</a>
         </p>
         <p style="font-size:0.9em;">Regards,<br />CSD Team</p>
         <hr style="border:none;border-top:1px solid #eee" />
